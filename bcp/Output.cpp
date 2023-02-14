@@ -67,8 +67,8 @@ SCIP_RETCODE write_best_solution(
     }
 
     // Print paths.
-    println("");
-    print_used_paths(scip, sol);
+    // println("");
+    // print_used_paths(scip, sol);
 
     // Check if dummy variables are used.
     for (Agent a = 0; a < N; ++a)
@@ -112,6 +112,115 @@ SCIP_RETCODE write_best_solution(
                            a,
                            SCIPround(scip, SCIPvarGetObj(var)),
                            format_path(probdata, path_length, path));
+
+                // Move to next agent.
+                release_assert(!found, "Agent {} is using more than one path");
+                found = true;
+                break;
+            }
+        }
+        release_assert(found, "Agent {} has no path in the solution", a);
+    }
+
+    // Close file.
+    EXIT:
+    fclose(f);
+
+    // Done.
+    return SCIP_OKAY;
+}
+
+
+
+SCIP_RETCODE write_path(
+    SCIP* scip    // SCIP
+    , String filename
+)
+{
+    // Check.
+    debug_assert(scip);
+
+    // Get problem data.
+    auto probdata = SCIPgetProbData(scip);
+    const auto N = SCIPprobdataGetN(probdata);
+
+    // Get variables.
+    const auto& dummy_vars = SCIPprobdataGetDummyVars(probdata);
+    const auto& agent_vars = SCIPprobdataGetAgentVars(probdata);
+
+    // // Create output folder.
+    // struct stat st{0};
+    // if (stat(OUTPUTS_DIR, &st) == -1)
+    //     mkdir(OUTPUTS_DIR, 0700);
+
+    // Open file.
+    const auto output_filename = filename;
+    auto f = fopen(output_filename.c_str(), "w");
+    release_assert(f, "Failed to create file to write solution");
+
+    // Get best solution.
+    auto sol = SCIPgetBestSol(scip);
+    SCIP_Real obj = 0;
+    if (!sol)
+    {
+        // fmt::print(f, "-\n");
+        goto EXIT;
+    }
+
+    // Exit if no solution within objective limit is found.
+    obj = SCIPgetSolOrigObj(scip, sol);
+    if (obj >= ARTIFICIAL_VAR_COST)
+    {
+        // fmt::print(f, "-\n");
+        goto EXIT;
+    }
+
+    // Print paths.
+    // println("");
+    // print_used_paths(scip, sol);
+
+    // Check if dummy variables are used.
+    for (Agent a = 0; a < N; ++a)
+    {
+        // Get the variable.
+        auto var = dummy_vars[a];
+        debug_assert(var);
+        debug_assert(!SCIPvarGetData(var));
+
+        // Get the variable value.
+        const auto var_val = SCIPgetSolVal(scip, sol, var);
+
+        // Check
+        if (SCIPisPositive(scip, var_val))
+        {
+            // fmt::print(f, "-\n");
+            goto EXIT;
+        }
+    }
+
+    // Write objective value.
+    // fmt::print(f, "{:.0f}\n\n", SCIPround(scip, obj));
+
+    // Write paths.
+    for (Agent a = 0; a < N; ++a)
+    {
+        bool found = false;
+        for (const auto& [var, _] : agent_vars[a])
+        {
+            // Get the variable value.
+            debug_assert(var);
+            const auto var_val = SCIPgetSolVal(scip, sol, var);
+
+            // Write the path.
+            if (SCIPisPositive(scip, var_val))
+            {
+                // Get the path.
+                auto vardata = SCIPvarGetData(var);
+                const auto path_length = SCIPvardataGetPathLength(vardata);
+                const auto path = SCIPvardataGetPath(vardata);
+
+                // Write.
+                fmt::print(f,format_path_action(probdata, path_length, path)+"\n");
 
                 // Move to next agent.
                 release_assert(!found, "Agent {} is using more than one path");

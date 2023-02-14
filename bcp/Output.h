@@ -27,4 +27,9 @@ SCIP_RETCODE write_best_solution(
     SCIP* scip    // SCIP
 );
 
+SCIP_RETCODE write_path(
+    SCIP* scip    // SCIP
+    , String filename
+);
+
 #endif

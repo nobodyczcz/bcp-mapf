@@ -174,7 +174,7 @@ Instance::Instance(const std::filesystem::path& scenario_path, const Agent agent
                 if (map.empty())
                 {
                     // Prepend the directory of the scenario file.
-                    map_path = scenario_path.parent_path().append(agent_map_data.map_path);
+                    map_path = scenario_path.parent_path().append("../map/"+agent_map_data.map_path);
 
                     // Read map.
                     read_map(map_path, map);

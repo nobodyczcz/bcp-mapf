@@ -23,7 +23,11 @@ Author: Edward Lam <ed@ed-lam.com>
 
 #include "scip/scipshell.h"
 #include "scip/scipdefplugins.h"
+#include "scip/clock.h"
 #include "cxxopts.hpp"
+
+#include <fstream>
+#include <iostream>  
 
 static
 SCIP_RETCODE start_solver(
@@ -34,6 +38,8 @@ SCIP_RETCODE start_solver(
     // Parse program options.
     String instance_file;
     Agent agent_limit = std::numeric_limits<Agent>::max();
+    String path_file;
+    String output_file;
     SCIP_Real time_limit = 0;
     SCIP_Longint node_limit = 0;
     SCIP_Real gap_limit = 0;
@@ -50,6 +56,8 @@ SCIP_RETCODE start_solver(
             ("t,time-limit", "Time limit in seconds", cxxopts::value<SCIP_Real>())
             ("n,node-limit", "Maximum number of branch-and-bound nodes", cxxopts::value<SCIP_Longint>())
             ("g,gap-limit", "Solve to an optimality gap", cxxopts::value<SCIP_Real>())
+            ("o,output","write statistics to a file", cxxopts::value<Vector<String>>())
+            ("p,output-path","write solution path to a file", cxxopts::value<Vector<String>>())
         ;
         options.parse_positional({"file"});
 
@@ -69,7 +77,20 @@ SCIP_RETCODE start_solver(
             instance_file = result["file"].as<String>();
         }
 
-        // Get agent limit.
+
+        // Get path to instance.
+        if (result.count("output-path"))
+        {
+            path_file = result["output-path"].as<Vector<String>>().at(0);
+        }
+        
+        // Get path to instance.
+        if (result.count("output"))
+        {
+            output_file = result["output"].as<Vector<String>>().at(0);
+        }
+
+        // Get agents limit.
         if (result.count("agent-limit"))
         {
             agent_limit = result["agent-limit"].as<Agent>();
@@ -375,11 +396,30 @@ SCIP_RETCODE start_solver(
     // Output.
     {
         // Print.
-        println("");
-        SCIP_CALL(SCIPprintStatistics(scip, NULL));
+        // println("");
+        // SCIP_CALL(SCIPprintStatistics(scip, NULL));
 
+        bool solved = scip->set->stage == 10;
+        int solvingtime = SCIPclockGetTime(scip->stat->solvingtime);
+        int solvingnodes = scip->stat->nnodes;
+        double upper_bound = SCIPgetPrimalbound(scip);
+        double lower_bound = SCIPgetDualbound(scip);
+        
+        std::ifstream infile(output_file);
+        bool exist = infile.good();
+        infile.close();
+        if (!exist)
+        {
+            std::ofstream addHeads(output_file);
+            addHeads << "runtime,solution cost,lower bound,upper bound," <<
+                    "nodes," << "instance name, #agents" << std::endl;
+            addHeads.close();
+        }
+        std::ofstream stats(output_file, std::ios::app);
+        stats <<solvingtime <<"," << (solved?upper_bound:-1) << "," << lower_bound <<"," <<upper_bound <<","<< instance_file <<","<<agent_limit  <<std::endl;
+        stats.close();
         // Write best solution to file.
-        SCIP_CALL(write_best_solution(scip));
+        SCIP_CALL(write_path(scip, path_file));
     }
 
     // Free memory.

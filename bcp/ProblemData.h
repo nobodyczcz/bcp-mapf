@@ -270,6 +270,13 @@ AStar& SCIPprobdataGetAStar(
 );
 
 // Format path
+String format_path_action(
+    SCIP_ProbData* probdata,    // Problem data
+    const Time path_length,     // Path length
+    const Edge* const path      // Path
+);
+
+// Format path
 String format_path(
     SCIP_ProbData* probdata,    // Problem data
     const Time path_length,     // Path length

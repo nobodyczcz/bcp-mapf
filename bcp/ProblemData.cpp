@@ -1981,6 +1981,50 @@ AStar& SCIPprobdataGetAStar(
     return *probdata->astar;
 }
 
+String get_move_string(Position curr_x,Position curr_y, Position prev_x, Position prev_y) {
+    if(curr_x > prev_x){
+        return "r";
+    }
+    if(curr_x < prev_x){
+        return "l";
+    }
+    if(curr_y > prev_y){
+        return "u";
+    }
+    if(curr_y < prev_y){
+        return "d";
+    }
+    return "w";
+}
+
+// Format path
+String format_path_action(
+    SCIP_ProbData* probdata,    // Problem data
+    const Time path_length,     // Path length
+    const Edge* const path      // Path
+)
+{
+    const auto& map = SCIPprobdataGetMap(probdata);
+
+    String str;
+    Time t = 1;
+    for (; t < path_length - 1; ++t)
+    {
+        auto [prev_x, prev_y] = map.get_xy(path[t-1].n);
+
+        auto [curr_x, curr_y] = map.get_xy(path[t].n);
+#ifdef REMOVE_PADDING
+        --prev_x;
+        --prev_y;
+        --curr_x;
+        --curr_y;
+#endif
+        str += get_move_string(curr_x,curr_y, prev_x,prev_y);
+    }
+
+    return str;
+}
+
 // Format path
 String format_path(
     SCIP_ProbData* probdata,    // Problem data

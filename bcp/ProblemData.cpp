@@ -2008,7 +2008,7 @@ String format_path_action(
 
     String str;
     Time t = 1;
-    for (; t < path_length - 1; ++t)
+    for (; t <= path_length - 1; ++t)
     {
         auto [prev_x, prev_y] = map.get_xy(path[t-1].n);
 

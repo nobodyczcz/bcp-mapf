@@ -29,8 +29,8 @@ Author: Edward Lam <ed@ed-lam.com>
 #include <fstream>
 #include <iostream>  
 
-static
-SCIP_RETCODE start_solver(
+
+int start_solver(
     int argc,      // Number of shell parameters
     char** argv    // Array with shell parameters
 )
@@ -392,15 +392,15 @@ SCIP_RETCODE start_solver(
 
     // Solve.
     SCIP_CALL(SCIPsolve(scip));
-
+    
+    bool solved = scip->set->stage == 10;
     // Output.
     {
         // Print.
         // println("");
         // SCIP_CALL(SCIPprintStatistics(scip, NULL));
 
-        bool solved = scip->set->stage == 10;
-        int solvingtime = SCIPclockGetTime(scip->stat->solvingtime);
+        double solvingtime = SCIPclockGetTime(scip->stat->solvingtime);
         int solvingnodes = scip->stat->nnodes;
         double upper_bound = SCIPgetPrimalbound(scip);
         double lower_bound = SCIPgetDualbound(scip);
@@ -429,16 +429,16 @@ SCIP_RETCODE start_solver(
     BMScheckEmptyMemory();
 
     // Done.
-    return SCIP_OKAY;
+    return solved ?  1 : 0;
 }
 
 int main(int argc, char** argv)
 {
-    const SCIP_RETCODE retcode = start_solver(argc, argv);
-    if (retcode != SCIP_OKAY)
-    {
-        SCIPprintError(retcode);
-        return -1;
-    }
-    return 0;
+    int success = start_solver(argc, argv);
+    // if (retcode != SCIP_OKAY)
+    // {
+    //     SCIPprintError(retcode);
+    //     return -1;
+    // }
+    return success;
 }
